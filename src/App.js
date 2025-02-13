@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import AddTask from './components/AddTask';
+import ListTask from './components/ListTask';
 import TaskForm from './components/TaskForm';
-import TaskList from './components/TaskList';
 
 const App = () => {
   const [tasks, setTasks] = useState([]);
   const [taskToEdit, setTaskToEdit] = useState(null);
+  const [filter, setFilter] = useState('all');
 
   useEffect(() => {
     const savedTasks = JSON.parse(localStorage.getItem('tasks'));
@@ -17,45 +19,61 @@ const App = () => {
     localStorage.setItem('tasks', JSON.stringify(tasks));
   }, [tasks]);
 
-  const addOrUpdateTask = (task) => {
-    if (taskToEdit !== null) {
-      const updatedTasks = tasks.map((t, index) => 
-        index === taskToEdit ? task : t
-      );
-      setTasks(updatedTasks);
-      setTaskToEdit(null);
-    } else {
-      setTasks([...tasks, { ...task, completed: false }]);
-    }
+  const addTask = (task) => {
+    setTasks([...tasks, task]);
   };
 
-  const deleteTask = (index) => {
+  const deleteTask = (id) => {
     if (window.confirm('Are you sure you want to delete this task?')) {
-      const updatedTasks = tasks.filter((_, i) => i !== index);
-      setTasks(updatedTasks);
+      setTasks(tasks.filter((task) => task.id !== id));
     }
   };
 
-  const toggleCompleteTask = (index) => {
-    const updatedTasks = tasks.map((task, i) =>
-      i === index ? { ...task, completed: !task.completed } : task
+  const toggleTask = (id) => {
+    setTasks(
+      tasks.map((task) =>
+        task.id === id ? { ...task, isDone: !task.isDone } : task
+      )
     );
-    setTasks(updatedTasks);
   };
 
-  const editTask = (index) => {
-    setTaskToEdit(index);
+  const editTask = (id) => {
+    const task = tasks.find((task) => task.id === id);
+    setTaskToEdit(task);
   };
+
+  const updateTask = (updatedTask) => {
+    setTasks(
+      tasks.map((task) =>
+        task.id === updatedTask.id ? updatedTask : task
+      )
+    );
+    setTaskToEdit(null);
+  };
+
+  const filteredTasks = tasks.filter((task) => {
+    if (filter === 'done') return task.isDone;
+    if (filter === 'not') return !task.isDone;
+    return true;
+  });
 
   return (
     <div className="app">
       <h1>To-Do List</h1>
-      <TaskForm onSave={addOrUpdateTask} taskToEdit={tasks[taskToEdit]} />
-      <TaskList
-        tasks={tasks}
+      <AddTask onAdd={addTask} />
+      <div>
+        <button onClick={() => setFilter('all')}>All</button>
+        <button onClick={() => setFilter('done')}>Done</button>
+        <button onClick={() => setFilter('not')}>Not Done</button>
+      </div>
+      {taskToEdit && (
+        <TaskForm onSave={updateTask} taskToEdit={taskToEdit} />
+      )}
+      <ListTask
+        tasks={filteredTasks}
         onEdit={editTask}
         onDelete={deleteTask}
-        onToggleComplete={toggleCompleteTask}
+        onToggle={toggleTask}
       />
     </div>
   );
